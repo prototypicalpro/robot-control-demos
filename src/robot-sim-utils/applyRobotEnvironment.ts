@@ -1,4 +1,12 @@
-import {Body, Composite, Composites, Bodies, Constraint} from 'matter-js';
+import {
+  World,
+  Bodies,
+  Body,
+  Composite,
+  Composites,
+  Constraint
+} from 'matter-js';
+import OBJECT_ID from './objectId';
 
 const NO_DENSITY = 1e-30;
 
@@ -12,14 +20,19 @@ const NO_DENSITY = 1e-30;
  * @param {number} wheelSize
  * @returns {composite} A new composite car body
  */
-export default function makeCarComposite(
+function makeCarComposite(
   xx: number,
   yy: number,
   width: number,
   height: number,
   wheelSize: number,
   wheelFriction: number,
-  carDensity: number
+  color?: {
+    flag?: string;
+    body?: string;
+    wheels?: string;
+    flagPole?: string;
+  }
 ) {
   const group = Body.nextGroup(true),
     wheelBase = 20,
@@ -34,7 +47,11 @@ export default function makeCarComposite(
     collisionFilter: {
       group: group
     },
-    density: carDensity
+    density: 0.0001,
+    id: OBJECT_ID.CAR_BODY,
+    render: {
+      fillStyle: color?.body
+    }
   });
 
   Body.rotate(body, Math.PI);
@@ -47,7 +64,11 @@ export default function makeCarComposite(
       collisionFilter: {
         group: group
       },
-      friction: wheelFriction
+      friction: wheelFriction,
+      id: OBJECT_ID.CAR_WHEEL_BACK,
+      render: {
+        fillStyle: color?.wheels
+      }
     }
   );
 
@@ -59,7 +80,11 @@ export default function makeCarComposite(
       collisionFilter: {
         group: group
       },
-      friction: wheelFriction
+      friction: wheelFriction,
+      id: OBJECT_ID.CAR_WHEEL_FRONT,
+      render: {
+        fillStyle: color?.wheels
+      }
     }
   );
 
@@ -92,11 +117,17 @@ export default function makeCarComposite(
     true,
     particleRadius,
     {
-      render: {visible: true},
+      render: {
+        visible: true,
+        fillStyle: color?.flagPole
+      },
       density: 0.001,
+      slop: 0.005,
       collisionFilter: {group: flagGroup, category: 0}
     },
-    null
+    {
+      stiffness: 0.5
+    }
   );
 
   const leftFlagMountPoint = flagPole.bodies[flagPole.bodies.length - 2];
@@ -126,7 +157,10 @@ export default function makeCarComposite(
     flagRadius,
     {
       density: NO_DENSITY,
-      collisionFilter: {group: flagGroup}
+      collisionFilter: {group: flagGroup},
+      render: {
+        fillStyle: color?.flag
+      }
     }
   );
 
@@ -149,5 +183,68 @@ export default function makeCarComposite(
   Composite.add(car, flagTriangle);
   Composite.add(car, flagMount);
 
-  return {composite: car, backWheel: wheelA, frontWheel: wheelB, body};
+  return car;
+}
+
+export default function applyRobotEnvironment(
+  world: World,
+  width: number,
+  height: number,
+  color?: {
+    flag?: string;
+    body?: string;
+    wheels?: string;
+    flagPole?: string;
+    pointB?: string;
+    walls?: string;
+  }
+) {
+  World.clear(world, false);
+  // walls
+  World.add(world, [
+    // walls
+    Bodies.rectangle(width / 2, 0, width, 50, {
+      isStatic: true,
+      render: {fillStyle: color?.walls}
+    }),
+    Bodies.rectangle(width / 2, height, width, 50, {
+      isStatic: true,
+      render: {fillStyle: color?.walls}
+    }),
+    Bodies.rectangle(width, height / 2, 50, height, {
+      isStatic: true,
+      render: {fillStyle: color?.walls}
+    }),
+    Bodies.rectangle(0, height / 2, 50, height, {
+      isStatic: true,
+      render: {fillStyle: color?.walls}
+    })
+  ]);
+  // create the car
+  const scale = 0.8;
+  const car = makeCarComposite(
+    150,
+    height - 150,
+    150 * scale,
+    150 * scale,
+    40 * scale,
+    0.8,
+    color
+  );
+  // car 1
+  World.add(world, car);
+  // create the destination point
+  World.add(
+    world,
+    Bodies.rectangle(width * 0.8, height / 2, 1, height, {
+      isSensor: true,
+      isStatic: true,
+      id: OBJECT_ID.SENSOR_B,
+      render: {
+        strokeStyle: color?.pointB,
+        fillStyle: 'transparent',
+        lineWidth: 1
+      }
+    })
+  );
 }

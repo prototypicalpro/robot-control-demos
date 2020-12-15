@@ -6,7 +6,16 @@ import reportWebVitals from './reportWebVitals';
 
 ReactDOM.render(
   <React.StrictMode>
-    <RobotSim />
+    <RobotSim
+      width={window.innerWidth}
+      height={window.innerHeight}
+      style={{position: 'absolute'}}
+    />
+    <RobotSim
+      width={window.innerWidth}
+      height={window.innerHeight}
+      style={{position: 'absolute'}}
+    />
   </React.StrictMode>,
   document.getElementById('root')
 );
