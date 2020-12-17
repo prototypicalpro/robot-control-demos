@@ -177,11 +177,11 @@ function makeCarComposite(
   Composite.add(car, wheelB);
   Composite.add(car, axelA);
   Composite.add(car, axelB);
-  Composite.add(car, flagPole);
-  Composite.add(car, flagBodyLeft);
-  Composite.add(car, flagBodyRight);
-  Composite.add(car, flagTriangle);
-  Composite.add(car, flagMount);
+  //Composite.add(car, flagPole);
+  //Composite.add(car, flagBodyLeft);
+  //Composite.add(car, flagBodyRight);
+  //Composite.add(car, flagTriangle);
+  //Composite.add(car, flagMount);
 
   return car;
 }

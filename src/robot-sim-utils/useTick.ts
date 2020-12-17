@@ -1,15 +1,14 @@
 import * as React from 'react';
 
-import useDataWindow from './useDataWindow';
-
-export default function useTick(count: number, active?: boolean) {
+export default function useTick(active?: boolean) {
   const animationRef = React.useRef<number | null>(null);
-  const [{data: ticks}, addToTicks] = useDataWindow<DOMHighResTimeStamp>(count);
+  const [tick, setTick] = React.useState(0);
+
   // use requestAnimationFrame to tick
   React.useEffect(() => {
     if (active) {
       const animationCallback = (data: DOMHighResTimeStamp) => {
-        addToTicks({action: 'add', data});
+        setTick(data);
         animationRef.current = requestAnimationFrame(animationCallback);
       };
       animationRef.current = requestAnimationFrame(animationCallback);
@@ -17,10 +16,10 @@ export default function useTick(count: number, active?: boolean) {
       return () => {
         if (animationRef.current) cancelAnimationFrame(animationRef.current);
         animationRef.current = null;
-        addToTicks({action: 'clear'});
+        setTick(0);
       };
     }
-  }, [active, addToTicks]);
+  }, [active]);
   // return the current tick and delta
-  return ticks;
+  return tick;
 }
