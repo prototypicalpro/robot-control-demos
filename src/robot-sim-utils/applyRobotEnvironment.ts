@@ -6,7 +6,7 @@ import {
   Composites,
   Constraint
 } from 'matter-js';
-import OBJECT_ID from './objectId';
+import {OBJECT_ID, COLLISION_CATEGORY} from './Constants';
 
 const NO_DENSITY = 1e-30;
 
@@ -20,7 +20,7 @@ const NO_DENSITY = 1e-30;
  * @param {number} wheelSize
  * @returns {composite} A new composite car body
  */
-function makeCarComposite(
+export function makeCarComposite(
   xx: number,
   yy: number,
   width: number,
@@ -33,22 +33,23 @@ function makeCarComposite(
     wheels?: string;
     flagPole?: string;
   }
-) {
-  const group = Body.nextGroup(true),
-    wheelBase = 20,
+): [Composite, {body: Body; wheelBack: Body; wheelFront: Body}] {
+  const wheelBase = 20,
     wheelAOffset = -width * 0.5 + wheelBase,
     wheelBOffset = width * 0.5 - wheelBase,
     wheelYOffset = width * 0.5 - wheelBase,
     flagXOffset = width * -0.5,
     flagYOffset = height * -0.5;
+  const bodyGroup = Body.nextGroup(false);
 
   const car = Composite.create({label: 'Car'});
   const body = Bodies.rectangle(xx, yy, width, height, {
     collisionFilter: {
-      group: group
+      category: COLLISION_CATEGORY.CARS,
+      mask: COLLISION_CATEGORY.WALLS,
+      group: bodyGroup
     },
     density: 0.0001,
-    id: OBJECT_ID.CAR_BODY,
     render: {
       fillStyle: color?.body
     }
@@ -56,57 +57,56 @@ function makeCarComposite(
 
   Body.rotate(body, Math.PI);
 
-  const wheelA = Bodies.circle(
+  const wheelBack = Bodies.circle(
     xx + wheelAOffset,
     yy + wheelYOffset,
     wheelSize,
     {
       collisionFilter: {
-        group: group
+        category: COLLISION_CATEGORY.CARS,
+        mask: COLLISION_CATEGORY.WALLS
       },
       friction: wheelFriction,
-      id: OBJECT_ID.CAR_WHEEL_BACK,
       render: {
         fillStyle: color?.wheels
       }
     }
   );
 
-  const wheelB = Bodies.circle(
+  const wheelFront = Bodies.circle(
     xx + wheelBOffset,
     yy + wheelYOffset,
     wheelSize,
     {
       collisionFilter: {
-        group: group
+        category: COLLISION_CATEGORY.CARS,
+        mask: COLLISION_CATEGORY.WALLS
       },
       friction: wheelFriction,
-      id: OBJECT_ID.CAR_WHEEL_FRONT,
       render: {
         fillStyle: color?.wheels
       }
     }
   );
 
-  const axelA = Constraint.create({
+  const axelBack = Constraint.create({
     bodyB: body,
     pointB: {x: wheelAOffset, y: wheelYOffset},
-    bodyA: wheelA,
+    bodyA: wheelBack,
     stiffness: 1,
     length: 0
   });
 
-  const axelB = Constraint.create({
+  const axelFront = Constraint.create({
     bodyB: body,
     pointB: {x: wheelBOffset, y: wheelYOffset},
-    bodyA: wheelB,
+    bodyA: wheelFront,
     stiffness: 1,
     length: 0
   });
 
   const particleRadius = 10;
   const rowCount = 5;
-  const flagGroup = Body.nextGroup(false);
   const flagPole = Composites.softBody(
     xx + flagXOffset - particleRadius,
     yy + flagYOffset - particleRadius * (2 * rowCount - 1),
@@ -123,7 +123,11 @@ function makeCarComposite(
       },
       density: 0.001,
       slop: 0.005,
-      collisionFilter: {group: flagGroup, category: 0}
+      collisionFilter: {
+        category: COLLISION_CATEGORY.CARS,
+        mask: COLLISION_CATEGORY.WALLS,
+        group: bodyGroup
+      }
     },
     {
       stiffness: 0.5
@@ -157,7 +161,11 @@ function makeCarComposite(
     flagRadius,
     {
       density: NO_DENSITY,
-      collisionFilter: {group: flagGroup},
+      collisionFilter: {
+        category: COLLISION_CATEGORY.CARS,
+        mask: COLLISION_CATEGORY.WALLS,
+        group: bodyGroup
+      },
       render: {
         fillStyle: color?.flag
       }
@@ -173,78 +181,66 @@ function makeCarComposite(
   });
 
   Composite.add(car, body);
-  Composite.add(car, wheelA);
-  Composite.add(car, wheelB);
-  Composite.add(car, axelA);
-  Composite.add(car, axelB);
+  Composite.add(car, wheelBack);
+  Composite.add(car, wheelFront);
+  Composite.add(car, axelBack);
+  Composite.add(car, axelFront);
   //Composite.add(car, flagPole);
   //Composite.add(car, flagBodyLeft);
   //Composite.add(car, flagBodyRight);
   //Composite.add(car, flagTriangle);
   //Composite.add(car, flagMount);
 
-  return car;
+  return [
+    car,
+    {
+      body,
+      wheelBack,
+      wheelFront
+    }
+  ];
 }
 
-export default function applyRobotEnvironment(
+export function applyRobotEnvironment(
   world: World,
   width: number,
   height: number,
   color?: {
-    flag?: string;
-    body?: string;
-    wheels?: string;
-    flagPole?: string;
-    pointB?: string;
     walls?: string;
   }
 ) {
-  World.clear(world, false);
   // walls
+  const wallOpts = {
+    isStatic: true,
+    render: {fillStyle: color?.walls},
+    collisionFilter: {
+      category: COLLISION_CATEGORY.WALLS,
+      mask: COLLISION_CATEGORY.CARS
+    }
+  };
   World.add(world, [
     // walls
-    Bodies.rectangle(width / 2, 0, width, 50, {
-      isStatic: true,
-      render: {fillStyle: color?.walls}
-    }),
-    Bodies.rectangle(width / 2, height, width, 50, {
-      isStatic: true,
-      render: {fillStyle: color?.walls}
-    }),
-    Bodies.rectangle(width, height / 2, 50, height, {
-      isStatic: true,
-      render: {fillStyle: color?.walls}
-    }),
-    Bodies.rectangle(0, height / 2, 50, height, {
-      isStatic: true,
-      render: {fillStyle: color?.walls}
-    })
+    Bodies.rectangle(width / 2, 0, width, 50, wallOpts),
+    Bodies.rectangle(width / 2, height, width, 50, wallOpts),
+    Bodies.rectangle(width, height / 2, 50, height, wallOpts),
+    Bodies.rectangle(0, height / 2, 50, height, wallOpts)
   ]);
-  // create the car
-  const scale = 0.8;
-  const car = makeCarComposite(
-    150,
-    height - 150,
-    150 * scale,
-    150 * scale,
-    40 * scale,
-    0.8,
-    color
-  );
-  // car 1
-  World.add(world, car);
   // create the destination point
-  World.add(
-    world,
-    Bodies.rectangle(width * 0.8, height / 2, 1, height, {
-      isSensor: true,
-      isStatic: true,
-      id: OBJECT_ID.SENSOR_B,
-      render: {
-        strokeStyle: color?.pointB,
-        fillStyle: 'transparent',
-        lineWidth: 1
-      }
-    })
-  );
+  const pointB = Bodies.rectangle(width * 0.8, height / 2, 1, height, {
+    isStatic: true,
+    id: OBJECT_ID.SENSOR_B,
+    collisionFilter: {
+      category: COLLISION_CATEGORY.SENSOR
+    },
+    render: {
+      strokeStyle: 'black',
+      fillStyle: 'transparent',
+      lineWidth: 1
+    }
+  });
+  World.add(world, pointB);
+
+  return {
+    pointB
+  };
 }
