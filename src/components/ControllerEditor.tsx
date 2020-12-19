@@ -1,10 +1,11 @@
 import * as React from 'react';
 import Editor from 'react-simple-code-editor';
 import Prism from 'prismjs';
-import 'prismjs/themes/prism.css';
+import 'prism-themes/themes/prism-vsc-dark-plus.css';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
 import {ControllerFactory} from '../robot-sim-utils/Controller';
+import './ControllerEditor.css';
 
 const CODE_DEFAULT = `
 class Controller {
@@ -63,15 +64,10 @@ export default function ControllerEditor({
           Prism.highlight(code, Prism.languages.javascript, 'javascript')
         }
         padding={10}
-        style={{
-          fontFamily: '"Fira code", "Fira Mono", monospace',
-          fontSize: 24,
-          overflowY: 'auto',
-          width: '100%',
-          flexGrow: 2
-        }}
+        className="controller-editor-container"
+        preClassName="controller-editor-highlight"
       />
-      <p>{error}</p>
+      <p style={{color: '#d4d4d4'}}>{error}</p>
     </div>
   );
 }

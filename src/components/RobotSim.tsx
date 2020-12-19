@@ -9,7 +9,6 @@ import {
   LineSeriesCanvas
 } from 'react-vis';
 import Button from 'react-bootstrap/Button';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import {
   applyRobotEnvironment,
   makeCarComposite
@@ -24,7 +23,8 @@ const CAR_SCALE = 0.8;
 const WINDOW_SIZE = 300;
 const GRAPH_TICK_WAIT = 0;
 const MOTOR_SETTINGS = {
-  maxTorque: 0.0002,
+  frictionCoef: -0.001,
+  maxTorque: 0.0006,
   stuckPowerThresh: 0.05,
   stuckAngularVelocityThresh: 0.5
 };
@@ -52,9 +52,11 @@ const RobotSim: React.FunctionComponent<{
     powerCoef: number;
     color: string;
   }[];
+  initialCode: string;
   style?: React.CSSProperties;
   className?: string;
-}> = ({style, className, width, height, cars}) => {
+  active?: boolean;
+}> = ({style, className, width, height, cars, initialCode, active}) => {
   const [simulationActive, setSimulationActive] = React.useState(false);
   const [simulationNumber, setSimulationNumber] = React.useState(1);
   const [curTick, setCurTick] = React.useState(0);
@@ -87,7 +89,7 @@ const RobotSim: React.FunctionComponent<{
 
   // setup engine and world
   React.useEffect(() => {
-    if (canvasRef.current && factoryRef.current && simulationNumber) {
+    if (canvasRef.current && factoryRef.current && simulationNumber && active) {
       // reset the engine
       engineRef.current = Engine.create();
       // reset the processed tick and current tick
@@ -107,11 +109,11 @@ const RobotSim: React.FunctionComponent<{
       for (const {powerCoef, color} of cars) {
         const [car, carParts] = makeCarComposite(
           150,
-          canvasHeight - 150,
+          canvasHeight - 95,
           150 * CAR_SCALE,
           150 * CAR_SCALE,
           40 * CAR_SCALE,
-          0.8,
+          0.2,
           {
             body: `${color}a0`,
             wheels: `${color}a0`,
@@ -141,7 +143,7 @@ const RobotSim: React.FunctionComponent<{
           height: canvasHeight,
           wireframes: false,
           showAngleIndicator: true,
-          background: '#00000000'
+          background: '#d4d4d4'
           // showCollisions: true
         } as any
       });
@@ -176,17 +178,19 @@ const RobotSim: React.FunctionComponent<{
     canvasHeight,
     cars,
     factoryRef,
-    simulationNumber
+    simulationNumber,
+    active
   ]);
 
   // handle play/pause changes
   React.useEffect(() => {
-    if (runnerRef.current && engineRef.current && simulationActive) {
+    if (runnerRef.current && engineRef.current && simulationActive && active) {
       Runner.start(runnerRef.current, engineRef.current);
       return () => Runner.stop(runnerRef.current as Runner);
     }
-  }, [runnerRef, engineRef, simulationActive]);
+  }, [runnerRef, engineRef, simulationActive, active]);
 
+  // handle ticks
   React.useEffect(() => {
     if (
       rendererRef.current &&
@@ -225,7 +229,9 @@ const RobotSim: React.FunctionComponent<{
           positionWindow.addData(dist);
           velocityWindow.addData(velocity);
           // run the controller
-          const power = controller.step(dist, curTick, delta) * powerCoef;
+          const power =
+            controller.step({sensorDistance: dist, delta, time: curTick}) *
+            powerCoef;
           powerWindow.addData(power);
           // step the motors based on the values we just calculated
           const frontPower = motorFront.step(
@@ -245,6 +251,22 @@ const RobotSim: React.FunctionComponent<{
       }
     }
   }, [curTick]);
+
+  // allow play/pause using the spacebar
+  React.useEffect(() => {
+    if (active) {
+      const downHandler = ({code}: KeyboardEvent) =>
+        code === 'Space' && setSimulationActive(true);
+      const upHandler = ({code}: KeyboardEvent) =>
+        code === 'Space' && setSimulationActive(false);
+      window.addEventListener('keydown', downHandler, {passive: true});
+      window.addEventListener('keyup', upHandler, {passive: true});
+      return () => {
+        window.removeEventListener('keydown', downHandler);
+        window.removeEventListener('keyup', upHandler);
+      };
+    }
+  }, [setSimulationActive, active]);
 
   // generate data by zipping the tickWindow with all the other properties
   const res = React.useMemo(() => {
@@ -269,8 +291,13 @@ const RobotSim: React.FunctionComponent<{
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proccessedTickRef.current]);
 
+  const axisStyle = {
+    text: {fontSize: '1.2em', fill: '#d4d4d4'},
+    title: {fontSize: '1.1em', fill: '#d4d4d4'}
+  };
+
   return (
-    <div className="robot-sim-container" style={style}>
+    <div className="robot-sim-container" style={{width, height, ...style}}>
       <canvas
         className={className}
         ref={canvasRef}
@@ -284,6 +311,7 @@ const RobotSim: React.FunctionComponent<{
         <ControllerEditor
           onCodeUpdate={factory => (factoryRef.current = factory)}
           style={{flexGrow: 2}}
+          initialCode={initialCode}
         />
         <span>
           <Button
@@ -327,15 +355,8 @@ const RobotSim: React.FunctionComponent<{
           {res.power.map(({data, color}, i) => (
             <LineSeriesCanvas key={i} data={data} color={color} />
           ))}
-          <XAxis
-            style={{text: {fontSize: '1.2em'}, title: {fontSize: '1.1em'}}}
-            title="Time (ms)"
-            tickTotal={5}
-          />
-          <YAxis
-            style={{text: {fontSize: '1.2em'}, title: {fontSize: '1.1em'}}}
-            title="Power"
-          />
+          <XAxis style={axisStyle} title="Time (ms)" tickTotal={5} />
+          <YAxis style={axisStyle} title="Power" />
         </XYPlot>
       )}
       {res && (
@@ -350,15 +371,8 @@ const RobotSim: React.FunctionComponent<{
           {res.position.map(({data, color}, i) => (
             <LineSeriesCanvas key={i} data={data} color={color} />
           ))}
-          <XAxis
-            style={{text: {fontSize: '1.2em'}, title: {fontSize: '1.1em'}}}
-            title="Time (ms)"
-            tickTotal={5}
-          />
-          <YAxis
-            style={{text: {fontSize: '1.2em'}, title: {fontSize: '1.1em'}}}
-            title="Distance (px)"
-          />
+          <XAxis style={axisStyle} title="Time (ms)" tickTotal={5} />
+          <YAxis style={axisStyle} title="Distance (px)" />
         </XYPlot>
       )}
       {res && (
@@ -372,15 +386,8 @@ const RobotSim: React.FunctionComponent<{
           {res.velocity.map(({data, color}, i) => (
             <LineSeriesCanvas key={i} data={data} color={color} />
           ))}
-          <XAxis
-            style={{text: {fontSize: '1.2em'}, title: {fontSize: '1.1em'}}}
-            title="Time (ms)"
-            tickTotal={5}
-          />
-          <YAxis
-            style={{text: {fontSize: '1.2em'}, title: {fontSize: '1.1em'}}}
-            title="Velocity (px/s)"
-          />
+          <XAxis style={axisStyle} title="Time (ms)" tickTotal={5} />
+          <YAxis style={axisStyle} title="Velocity (px/s)" />
         </XYPlot>
       )}
     </div>

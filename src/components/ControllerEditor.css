@@ -1,0 +1,12 @@
+.controller-editor-container {
+  font-family: "Fira code", "Fira Mono", monospace;
+  font-size: 24px;
+  overflow-y: auto;
+  width: 100%;
+  flex-grow: 2;
+  caret-color: #AEAFAD;
+}
+
+.controller-editor-highlight {
+  color: #9cdcfe
+}

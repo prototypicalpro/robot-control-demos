@@ -1,5 +1,5 @@
 export interface Controller {
-  step(sensorDistance: number, time: number, delta: number): number;
+  step(data: {time: number; delta: number; sensorDistance: number}): number;
 }
 
 export interface ControllerFactory {
