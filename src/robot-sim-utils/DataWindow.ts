@@ -1,36 +1,38 @@
+import Denque from 'denque';
+
 export default class DataWindow<Data> {
   private readonly size: number;
   private readonly initial: Data[];
-  private curArray: Data[];
+  private curDenque: Denque<Data>;
 
   constructor(size: number, initial: Data[] = []) {
     this.size = size;
     this.initial = [...initial];
-    this.curArray = [...initial];
+    this.curDenque = new Denque(initial);
   }
 
   addData(data: Data) {
-    this.curArray.push(data);
-    if (this.curArray.length >= this.size) this.curArray.shift();
+    this.curDenque.push(data);
+    if (this.curDenque.length >= this.size) this.curDenque.shift();
   }
 
   values(): readonly Data[] {
-    return this.curArray;
+    return this.curDenque.toArray();
   }
 
   recent(index: number = 0): Data {
-    return this.curArray[this.curArray.length - 1 - index];
+    return this.curDenque.peekAt(this.curDenque.length - index - 1) as Data;
   }
 
   get(index: number): Data {
-    return this.curArray[index];
+    return this.curDenque.peekAt(index) as Data;
   }
 
   reset() {
-    this.curArray = [...this.initial];
+    this.curDenque = new Denque(this.initial);
   }
 
   count(): number {
-    return this.curArray.length;
+    return this.curDenque.length;
   }
 }

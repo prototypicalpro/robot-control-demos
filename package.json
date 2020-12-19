@@ -11,6 +11,7 @@
     "@types/node": "^14.14.13",
     "@types/react-dom": "^17.0.0",
     "bootstrap": "^4.5.3",
+    "denque": "^1.4.1",
     "matter-js": "^0.14.2",
     "prismjs": "^1.22.0",
     "react": "^17.0.1",

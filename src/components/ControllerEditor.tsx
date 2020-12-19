@@ -4,8 +4,6 @@ import Prism from 'prismjs';
 import 'prismjs/themes/prism.css';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
-import Button from 'react-bootstrap/Button';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import {ControllerFactory} from '../robot-sim-utils/Controller';
 
 const CODE_DEFAULT = `
@@ -17,29 +15,44 @@ class Controller {
   step(sensorDistance, time, delta) {
     return 1
   }
-
-  reset() {
-
-  }
 }`.trim();
 
 export default function ControllerEditor({
-  onCodeSubmit,
-  onPause,
+  initialCode = CODE_DEFAULT,
+  onCodeUpdate,
   style = {}
 }: {
-  onCodeSubmit: (code: ControllerFactory) => void;
-  running: boolean,
+  onCodeUpdate: (code: ControllerFactory) => void;
+  initialCode?: string;
   style?: React.CSSProperties;
 }) {
-  const [code, setCode] = React.useState(CODE_DEFAULT);
+  const [code, setCode] = React.useState(initialCode);
+  const [error, setError] = React.useState<string>();
+
+  React.useEffect(() => {
+    let Controller;
+    try {
+      // I know I know
+      // eslint-disable-next-line no-new-func
+      Controller = Function(`"use strict";return (${code})`)();
+      const controllerInstance = new Controller();
+      if (!(controllerInstance instanceof Controller))
+        throw new Error('Not a class');
+      if (!(controllerInstance.step instanceof Function))
+        throw new Error('No step() function on class');
+    } catch (e) {
+      setError(e.toString().split('\n')[0]);
+      return;
+    }
+    setError('');
+    onCodeUpdate(Controller as ControllerFactory);
+  }, [code, onCodeUpdate]);
 
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'flex-start',
         ...style
       }}
     >
@@ -53,22 +66,12 @@ export default function ControllerEditor({
         style={{
           fontFamily: '"Fira code", "Fira Mono", monospace',
           fontSize: 24,
-          flexGrow: 2,
+          overflowY: 'auto',
           width: '100%',
-          overflowY: 'scroll'
+          flexGrow: 2
         }}
       />
-      <span>
-        <Button variant="primary" size="lg">
-          Run
-        </Button>{' '}
-        <Button variant="primary" size="lg">
-          Pause
-        </Button>{' '}
-        <Button variant="primary" size="lg">
-          Reset
-        </Button>
-      </span>
+      <p>{error}</p>
     </div>
   );
 }

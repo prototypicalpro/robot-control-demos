@@ -1,5 +1,3 @@
-import {Vector} from 'matter-js';
-
 export default class MotorModel {
   private readonly maxTorque: number;
   private readonly stuckPowerThresh: number;

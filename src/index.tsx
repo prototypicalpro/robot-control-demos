@@ -1,21 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import RobotSim from './components/RobotSim';
+import Page from './components/Page';
 import reportWebVitals from './reportWebVitals';
 
 ReactDOM.render(
   <React.StrictMode>
-    <RobotSim
-      width={window.innerWidth}
-      height={window.innerHeight}
-      cars={[
-        {powerCoef: 1, color: '#ff0000'},
-        {powerCoef: 0.5, color: '#00ff00'},
-        {powerCoef: 0.2, color: '#0000ff'}
-      ]}
-      style={{overflow: 'visible'}}
-    />
+    <Page />
   </React.StrictMode>,
   document.getElementById('root')
 );

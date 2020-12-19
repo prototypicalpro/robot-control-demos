@@ -1,23 +1,15 @@
 import * as React from 'react';
-import {
-  Engine,
-  Render,
-  World,
-  Events,
-  Body,
-  Composite,
-  Runner,
-  Vector
-} from 'matter-js';
+import {Engine, Render, World, Events, Body, Vector, Runner} from 'matter-js';
 import '../../node_modules/react-vis/dist/style.css';
 import {
   XYPlot,
   XAxis,
   YAxis,
   HorizontalGridLines,
-  LineSeriesCanvas,
-  LineSeries
+  LineSeriesCanvas
 } from 'react-vis';
+import Button from 'react-bootstrap/Button';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import {
   applyRobotEnvironment,
   makeCarComposite
@@ -26,25 +18,16 @@ import DataWindow from '../robot-sim-utils/DataWindow';
 import MotorModel from '../robot-sim-utils/MotorModel';
 import {Controller, ControllerFactory} from '../robot-sim-utils/Controller';
 import ControllerEditor from './ControllerEditor';
+import './RobotSim.css';
 
 const CAR_SCALE = 0.8;
-const WINDOW_SIZE = 200;
+const WINDOW_SIZE = 300;
 const GRAPH_TICK_WAIT = 0;
 const MOTOR_SETTINGS = {
   maxTorque: 0.0002,
   stuckPowerThresh: 0.05,
   stuckAngularVelocityThresh: 0.5
 };
-
-class StupidContoller implements Controller {
-  startTime: number = 0;
-
-  step(sensorDistance: number, time: number) {
-    if (!this.startTime) this.startTime = time;
-    return time - this.startTime < 2000 ? 1 : 0;
-  }
-  reset() {}
-}
 
 function driveWheel(wheel: Body, force: number) {
   Body.applyForce(
@@ -72,17 +55,15 @@ const RobotSim: React.FunctionComponent<{
   style?: React.CSSProperties;
   className?: string;
 }> = ({style, className, width, height, cars}) => {
-  const [simulationActive, setSimulationActive] = React.useState(true);
+  const [simulationActive, setSimulationActive] = React.useState(false);
+  const [simulationNumber, setSimulationNumber] = React.useState(1);
   const [curTick, setCurTick] = React.useState(0);
-  const [controllerFactory, setControllerFactory] = React.useState<{
-    factory: ControllerFactory;
-  }>({factory: StupidContoller});
+  const factoryRef = React.useRef<ControllerFactory>();
   const proccessedTickRef = React.useRef<number>(0);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const engineRef = React.useRef(Engine.create());
   const rendererRef = React.useRef<Render>();
   const runnerRef = React.useRef<Runner>();
-
   const wheelsRef = React.useRef<
     {
       wheelFront: Body;
@@ -90,6 +71,7 @@ const RobotSim: React.FunctionComponent<{
       body: Body;
       positionWindow: DataWindow<number>;
       velocityWindow: DataWindow<number>;
+      powerWindow: DataWindow<number>;
       motorFront: MotorModel;
       motorBack: MotorModel;
       controller: Controller;
@@ -105,13 +87,14 @@ const RobotSim: React.FunctionComponent<{
 
   // setup engine and world
   React.useEffect(() => {
-    if (canvasRef.current) {
+    if (canvasRef.current && factoryRef.current && simulationNumber) {
       // reset the engine
       engineRef.current = Engine.create();
       // reset the processed tick and current tick
       tickWindowRef.current = new DataWindow(WINDOW_SIZE);
       setCurTick(0);
       proccessedTickRef.current = 0;
+      setSimulationActive(false);
       // generate the environment
       const {pointB} = applyRobotEnvironment(
         engineRef.current.world,
@@ -141,9 +124,10 @@ const RobotSim: React.FunctionComponent<{
           ...carParts,
           positionWindow: new DataWindow(WINDOW_SIZE),
           velocityWindow: new DataWindow(WINDOW_SIZE),
+          powerWindow: new DataWindow(WINDOW_SIZE),
           motorBack: new MotorModel(MOTOR_SETTINGS),
           motorFront: new MotorModel(MOTOR_SETTINGS),
-          controller: new controllerFactory.factory(),
+          controller: new factoryRef.current(),
           powerCoef,
           color
         });
@@ -161,10 +145,8 @@ const RobotSim: React.FunctionComponent<{
           // showCollisions: true
         } as any
       });
-      // start the simulation
-      setSimulationActive(true);
       // set react to tick with the engine
-      Events.on(engineRef.current, 'afterUpdate', ({timestamp}) =>
+      Events.on(engineRef.current, 'afterTick', ({timestamp}) =>
         setCurTick(timestamp)
       );
       // fit the render viewport to the scene
@@ -172,10 +154,11 @@ const RobotSim: React.FunctionComponent<{
         min: {x: 0, y: 0},
         max: {x: canvasWidth, y: canvasHeight}
       });
+      // run the Renderer once for a start freeze frame
+      Render.world(rendererRef.current);
       // start the physics runner
       // we let it run independently because react is too slow to keep up
       runnerRef.current = Runner.create();
-      Runner.start(runnerRef.current, engineRef.current);
       // cleanup
       return () => {
         // stop the runner
@@ -192,8 +175,17 @@ const RobotSim: React.FunctionComponent<{
     canvasWidth,
     canvasHeight,
     cars,
-    controllerFactory
+    factoryRef,
+    simulationNumber
   ]);
+
+  // handle play/pause changes
+  React.useEffect(() => {
+    if (runnerRef.current && engineRef.current && simulationActive) {
+      Runner.start(runnerRef.current, engineRef.current);
+      return () => Runner.stop(runnerRef.current as Runner);
+    }
+  }, [runnerRef, engineRef, simulationActive]);
 
   React.useEffect(() => {
     if (
@@ -223,6 +215,7 @@ const RobotSim: React.FunctionComponent<{
           body,
           positionWindow,
           velocityWindow,
+          powerWindow,
           powerCoef
         } of wheelsRef.current) {
           // calculate velocities and such
@@ -233,6 +226,7 @@ const RobotSim: React.FunctionComponent<{
           velocityWindow.addData(velocity);
           // run the controller
           const power = controller.step(dist, curTick, delta) * powerCoef;
+          powerWindow.addData(power);
           // step the motors based on the values we just calculated
           const frontPower = motorFront.step(
             delta,
@@ -265,57 +259,131 @@ const RobotSim: React.FunctionComponent<{
         velocity: wheelsRef.current.map(({velocityWindow, color}) => ({
           data: velocityWindow.values().map((y, i) => ({x: tickVal[i], y})),
           color
+        })),
+        power: wheelsRef.current.map(({powerWindow, color}) => ({
+          data: powerWindow.values().map((y, i) => ({x: tickVal[i], y})),
+          color
         }))
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proccessedTickRef.current]);
 
   return (
-    <>
+    <div className="robot-sim-container" style={style}>
       <canvas
         className={className}
         ref={canvasRef}
         width={width}
         height={canvasHeight}
-        style={{height: canvasHeight, ...style}}
+        style={{gridArea: 'canvas'}}
       />
-      <div style={{display: 'flex'}}>
+      <div
+        style={{display: 'flex', flexDirection: 'column', gridArea: 'editor'}}
+      >
         <ControllerEditor
-          onCodeSubmit={factory => setControllerFactory({factory})}
-          style={{height: height - canvasHeight, width: width / 2}}
+          onCodeUpdate={factory => (factoryRef.current = factory)}
+          style={{flexGrow: 2}}
         />
-        {res && (
-          <>
-            <XYPlot
-              xDomain={res.timeDomain}
-              yDomain={[-200, 750]}
-              width={width / 4}
-              height={height - canvasHeight}
+        <span>
+          <Button
+            variant="danger"
+            size="lg"
+            onClick={() => setSimulationNumber(simulationNumber + 1)}
+          >
+            Reload
+          </Button>{' '}
+          {simulationActive ? (
+            <Button
+              variant="warning"
+              size="lg"
+              onClick={() => {
+                setSimulationActive(false);
+              }}
             >
-              <HorizontalGridLines />
-              {res.position.map(({data, color}, i) => (
-                <LineSeriesCanvas key={i} data={data} color={color} />
-              ))}
-              <XAxis title="Time (ms)" />
-              <YAxis title="Distance (px)" />
-            </XYPlot>
-            <XYPlot
-              xDomain={res.timeDomain}
-              yDomain={[-10, 10]}
-              width={width / 4}
-              height={height - canvasHeight}
+              Pause
+            </Button>
+          ) : (
+            <Button
+              variant="success"
+              size="lg"
+              onClick={() => {
+                setSimulationActive(true);
+              }}
             >
-              <HorizontalGridLines />
-              {res.velocity.map(({data, color}, i) => (
-                <LineSeriesCanvas key={i} data={data} color={color} />
-              ))}
-              <XAxis title="Time (ms)" />
-              <YAxis title="Velocity (px/s)" />
-            </XYPlot>
-          </>
-        )}
+              Play
+            </Button>
+          )}
+        </span>
       </div>
-    </>
+      {res && (
+        <XYPlot
+          xDomain={res.timeDomain}
+          yDomain={[-1.1, 1.1]}
+          width={width / 5}
+          height={(height / 3) * 2}
+        >
+          <HorizontalGridLines />
+          {res.power.map(({data, color}, i) => (
+            <LineSeriesCanvas key={i} data={data} color={color} />
+          ))}
+          <XAxis
+            style={{text: {fontSize: '1.2em'}, title: {fontSize: '1.1em'}}}
+            title="Time (ms)"
+            tickTotal={5}
+          />
+          <YAxis
+            style={{text: {fontSize: '1.2em'}, title: {fontSize: '1.1em'}}}
+            title="Power"
+          />
+        </XYPlot>
+      )}
+      {res && (
+        <XYPlot
+          xDomain={res.timeDomain}
+          yDomain={[-400, width - 200]}
+          width={width / 5}
+          height={(height / 3) * 2}
+          margin={{left: 65}}
+        >
+          <HorizontalGridLines />
+          {res.position.map(({data, color}, i) => (
+            <LineSeriesCanvas key={i} data={data} color={color} />
+          ))}
+          <XAxis
+            style={{text: {fontSize: '1.2em'}, title: {fontSize: '1.1em'}}}
+            title="Time (ms)"
+            tickTotal={5}
+          />
+          <YAxis
+            style={{text: {fontSize: '1.2em'}, title: {fontSize: '1.1em'}}}
+            title="Distance (px)"
+          />
+        </XYPlot>
+      )}
+      {res && (
+        <XYPlot
+          xDomain={res.timeDomain}
+          yDomain={[-5, 15]}
+          width={width / 5}
+          height={(height / 3) * 2}
+        >
+          <HorizontalGridLines />
+          {res.velocity.map(({data, color}, i) => (
+            <LineSeriesCanvas key={i} data={data} color={color} />
+          ))}
+          <XAxis
+            style={{text: {fontSize: '1.2em'}, title: {fontSize: '1.1em'}}}
+            title="Time (ms)"
+            tickTotal={5}
+          />
+          <YAxis
+            style={{text: {fontSize: '1.2em'}, title: {fontSize: '1.1em'}}}
+            title="Velocity (px/s)"
+          />
+        </XYPlot>
+      )}
+    </div>
   );
 };
 
