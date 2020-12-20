@@ -1,0 +1,26 @@
+{
+  "files": {
+    "main.css": "/robot-control-demos/static/css/main.a630c020.chunk.css",
+    "main.js": "/robot-control-demos/static/js/main.273b06b7.chunk.js",
+    "main.js.map": "/robot-control-demos/static/js/main.273b06b7.chunk.js.map",
+    "runtime-main.js": "/robot-control-demos/static/js/runtime-main.1bc211b0.js",
+    "runtime-main.js.map": "/robot-control-demos/static/js/runtime-main.1bc211b0.js.map",
+    "static/css/2.418c51ad.chunk.css": "/robot-control-demos/static/css/2.418c51ad.chunk.css",
+    "static/js/2.39217a5b.chunk.js": "/robot-control-demos/static/js/2.39217a5b.chunk.js",
+    "static/js/2.39217a5b.chunk.js.map": "/robot-control-demos/static/js/2.39217a5b.chunk.js.map",
+    "static/js/3.420edc41.chunk.js": "/robot-control-demos/static/js/3.420edc41.chunk.js",
+    "static/js/3.420edc41.chunk.js.map": "/robot-control-demos/static/js/3.420edc41.chunk.js.map",
+    "index.html": "/robot-control-demos/index.html",
+    "static/css/2.418c51ad.chunk.css.map": "/robot-control-demos/static/css/2.418c51ad.chunk.css.map",
+    "static/css/main.a630c020.chunk.css.map": "/robot-control-demos/static/css/main.a630c020.chunk.css.map",
+    "static/js/2.39217a5b.chunk.js.LICENSE.txt": "/robot-control-demos/static/js/2.39217a5b.chunk.js.LICENSE.txt",
+    "static/media/Page.css": "/robot-control-demos/static/media/robot.766d65bf.jpeg"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.1bc211b0.js",
+    "static/css/2.418c51ad.chunk.css",
+    "static/js/2.39217a5b.chunk.js",
+    "static/css/main.a630c020.chunk.css",
+    "static/js/main.273b06b7.chunk.js"
+  ]
+}
