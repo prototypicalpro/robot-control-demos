@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "/robot-control-demos/static/css/main.a630c020.chunk.css",
-    "main.js": "/robot-control-demos/static/js/main.273b06b7.chunk.js",
-    "main.js.map": "/robot-control-demos/static/js/main.273b06b7.chunk.js.map",
+    "main.js": "/robot-control-demos/static/js/main.890ca98f.chunk.js",
+    "main.js.map": "/robot-control-demos/static/js/main.890ca98f.chunk.js.map",
     "runtime-main.js": "/robot-control-demos/static/js/runtime-main.1bc211b0.js",
     "runtime-main.js.map": "/robot-control-demos/static/js/runtime-main.1bc211b0.js.map",
     "static/css/2.418c51ad.chunk.css": "/robot-control-demos/static/css/2.418c51ad.chunk.css",
@@ -21,6 +21,6 @@
     "static/css/2.418c51ad.chunk.css",
     "static/js/2.39217a5b.chunk.js",
     "static/css/main.a630c020.chunk.css",
-    "static/js/main.273b06b7.chunk.js"
+    "static/js/main.890ca98f.chunk.js"
   ]
 }
