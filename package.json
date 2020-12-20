@@ -49,6 +49,7 @@
       "last 1 chrome version"
     ]
   },
+  "homepage": "https://prototypicalpro.github.io/robot-control-demos",
   "devDependencies": {
     "@types/prismjs": "^1.16.2",
     "@types/react": "^17.0.0",
