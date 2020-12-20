@@ -1,5 +1,6 @@
 import * as React from 'react';
 import Carousel from 'react-bootstrap/Carousel';
+import useKeyPress from '../robot-sim-utils/useKeyPress';
 
 export type Slide = (param: {
   width: number;
@@ -21,31 +22,27 @@ export default function SlideShow({
   className?: string;
 }) {
   const [index, setIndex] = React.useState(0);
-  const [shiftPressed, setShiftPressed] = React.useState(false);
+  const [keyUpIndex, setKeyUpIndex] = React.useState(0);
+  const shiftPressed = useKeyPress(
+    new Set(['ShiftLeft', 'ShiftRight', 'Shift'])
+  );
+  const arrowLeftPressed = useKeyPress(new Set(['ArrowLeft']));
+  const arrowRightPressed = useKeyPress(new Set(['ArrowRight']));
 
   React.useEffect(() => {
-    const downHandler = ({code}: KeyboardEvent) => {
-      if (code === 'ArrowLeft' && index > 0 && shiftPressed)
-        setIndex(index - 1);
-      else if (
-        code === 'ArrowRight' &&
-        index < children.length - 1 &&
-        shiftPressed
-      )
-        setIndex(index + 1);
-      else if (code === 'ShiftLeft' || code === 'ShiftRight')
-        setShiftPressed(true);
-    };
-    const upHandler = ({code}: KeyboardEvent) => {
-      if (code === 'ShiftLeft' || code === 'ShiftRight') setShiftPressed(false);
-    };
-    window.addEventListener('keydown', downHandler, {passive: true});
-    window.addEventListener('keyup', upHandler, {passive: true});
-    return () => {
-      window.removeEventListener('keydown', downHandler);
-      window.removeEventListener('keyup', upHandler);
-    };
-  }, [setIndex, shiftPressed, children.length, index]);
+    if (!shiftPressed) setKeyUpIndex(index);
+    else if (keyUpIndex === index) {
+      if (arrowRightPressed && index < children.length - 1) setIndex(index + 1);
+      else if (arrowLeftPressed && index > 0) setIndex(index - 1);
+    }
+  }, [
+    shiftPressed,
+    index,
+    arrowLeftPressed,
+    arrowRightPressed,
+    children.length,
+    keyUpIndex
+  ]);
 
   const slides = React.useMemo(
     () =>

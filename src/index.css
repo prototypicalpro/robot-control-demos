@@ -18,6 +18,10 @@ body {
   background-color: #1E1E1E;
 }
 
+p, h1, h2, h3, li {
+  color: #d4d4d4;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;

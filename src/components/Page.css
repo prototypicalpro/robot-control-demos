@@ -1,0 +1,82 @@
+.title-slide {
+  display: flex;
+  flex-flow: column;
+  justify-content: center;
+  padding: 50px;
+}
+
+.title-slide h1 {
+  font-size: 52pt;
+}
+
+.title-slide h2 {
+  font-size: 28pt;
+  color: grey;
+}
+
+.text-image-slide-container {
+  padding: 80px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+  grid-template-rows: 6em 20px 1fr;
+  gap: 0px 0px;
+  grid-template-areas:
+    "title title title title title title"
+    ". . . . . ."
+    "image image image image image image";
+}
+
+.text-image-slide-container .title-text {
+  grid-area: title;
+  text-align: center;
+}
+
+.text-image-slide-container .image-div {
+  grid-area: image;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.text-image-slide-container .image-div.image-half {
+  grid-row: 3 / 3;
+  grid-column: span 3;
+}
+
+.text-image-slide-container .point-list-container {
+  display: flex;
+  flex-flow: column;
+  justify-content: center;
+}
+
+.text-image-slide-container .point-list-container ul li {
+  font-size: 18pt;
+}
+
+.me-with-robot-marked {
+  background-image: url('../img/me-with-robot-marked.png');
+}
+
+.beaver-bot {
+  background-image: url('../img/deliverybot.jpg');
+}
+
+.beaver-bot-closer {
+  background-image: url('../img/robot.jpeg');
+}
+
+.bad-bot {
+  background-image: url('../img/bad-bot.jpg');
+}
+
+.loop-system {
+  background-image: url('../img/loop-system.png');
+}
+
+.feedfoward {
+  background-image: url('../img/feedforward.png');
+}
+
+.motion-profile {
+  background-image: url('../img/profile.png');
+}

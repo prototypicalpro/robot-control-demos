@@ -35,7 +35,7 @@ export default function ControllerEditor({
     try {
       // I know I know
       // eslint-disable-next-line no-new-func
-      Controller = Function(`"use strict";return (${code})`)();
+      Controller = Function(`"use strict"; ${code}; return Controller;`)();
       const controllerInstance = new Controller();
       if (!(controllerInstance instanceof Controller))
         throw new Error('Not a class');

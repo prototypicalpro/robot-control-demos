@@ -224,14 +224,26 @@ const RobotSim: React.FunctionComponent<{
         } of wheelsRef.current) {
           // calculate velocities and such
           const dist = pointBRef.current.position.x - body.position.x;
-          const velocity = body.velocity.x;
+          const velocity = positionWindow.recent()
+            ? -(dist - positionWindow.recent()) / (delta / 1e3)
+            : 0;
           // update other state
           positionWindow.addData(dist);
           velocityWindow.addData(velocity);
+          const rawPower = Math.min(
+            1,
+            Math.max(
+              -1,
+              controller.step({
+                sensorDistance: dist,
+                delta: delta / 1e3, // milliseconds to seconds
+                time: curTick / 1e3,
+                sensorVelocity: velocity
+              })
+            )
+          );
           // run the controller
-          const power =
-            controller.step({sensorDistance: dist, delta, time: curTick}) *
-            powerCoef;
+          const power = rawPower * powerCoef;
           powerWindow.addData(power);
           // step the motors based on the values we just calculated
           const frontPower = motorFront.step(
@@ -251,22 +263,6 @@ const RobotSim: React.FunctionComponent<{
       }
     }
   }, [curTick]);
-
-  // allow play/pause using the spacebar
-  React.useEffect(() => {
-    if (active) {
-      const downHandler = ({code}: KeyboardEvent) =>
-        code === 'Space' && setSimulationActive(true);
-      const upHandler = ({code}: KeyboardEvent) =>
-        code === 'Space' && setSimulationActive(false);
-      window.addEventListener('keydown', downHandler, {passive: true});
-      window.addEventListener('keyup', upHandler, {passive: true});
-      return () => {
-        window.removeEventListener('keydown', downHandler);
-        window.removeEventListener('keyup', upHandler);
-      };
-    }
-  }, [setSimulationActive, active]);
 
   // generate data by zipping the tickWindow with all the other properties
   const res = React.useMemo(() => {
@@ -306,12 +302,17 @@ const RobotSim: React.FunctionComponent<{
         style={{gridArea: 'canvas'}}
       />
       <div
-        style={{display: 'flex', flexDirection: 'column', gridArea: 'editor'}}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gridArea: 'editor',
+          overflowY: 'auto'
+        }}
       >
         <ControllerEditor
           onCodeUpdate={factory => (factoryRef.current = factory)}
-          style={{flexGrow: 2}}
           initialCode={initialCode}
+          style={{flexGrow: 2}}
         />
         <span>
           <Button
@@ -350,6 +351,7 @@ const RobotSim: React.FunctionComponent<{
           yDomain={[-1.1, 1.1]}
           width={width / 5}
           height={(height / 3) * 2}
+          margin={{left: 65}}
         >
           <HorizontalGridLines />
           {res.power.map(({data, color}, i) => (
@@ -378,9 +380,10 @@ const RobotSim: React.FunctionComponent<{
       {res && (
         <XYPlot
           xDomain={res.timeDomain}
-          yDomain={[-5, 15]}
+          yDomain={[-600, 1000]}
           width={width / 5}
           height={(height / 3) * 2}
+          margin={{left: 65}}
         >
           <HorizontalGridLines />
           {res.velocity.map(({data, color}, i) => (
